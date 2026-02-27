@@ -137,16 +137,16 @@ jobs:
       - name: Wait for app to start
         run: |
           for i in {1..20}; do
-            nc -z localhost 3000 && echo "App is ready" && exit 0
-            echo "Waiting for app..."
-            sleep 2
+            nc -z localhost 3000 && exit 0
+            sleep 1
           done
-          echo "App did not start in time" && exit 1
+          exit 1
       - name: OWASP ZAP Baseline
         uses: zaproxy/action-baseline@v0.10.0
         with:
           target: 'http://host.docker.internal:3000'
           allow_issue_writing: false
+          workdir: '/zap'
 
   # ═══════════════════════════════════════
   # 6. RAPPORT FINAL
