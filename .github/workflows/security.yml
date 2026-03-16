@@ -2,6 +2,10 @@ name: DevSecOps Pipeline
 
 on: [push, pull_request]
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   # ═══════════════════════════════════════
   # 1. BUILD
@@ -59,7 +63,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: '24'
 
       - name: Install dependencies
         working-directory: ./src
