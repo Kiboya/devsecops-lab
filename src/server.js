@@ -65,6 +65,14 @@ if (process.env.NODE_ENV !== 'production') {
   app.get('/debug', (req, res) => {
     res.json({ message: 'Debug mode' });
   });
-}
 
+  // SQLi vulnerability
+  app.get('/training/sqli', (req, res) => {
+    const username = req.query.username;
+    const query = `SELECT * FROM users WHERE username = '${username}'`;
+    db.query(query, (err, rows) => {
+      res.json(rows);
+    });
+  });
+}
 app.listen(3000, () => console.log('✅ Secure server running'));
