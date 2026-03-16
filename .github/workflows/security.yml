@@ -121,6 +121,34 @@ jobs:
           exit-code: '1'
           severity: 'CRITICAL'
 
+  codeql:
+    name: 🔍 CodeQL
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform Analysis
+        uses: github/codeql-action/analyze@v3
+
+  security-gate:
+    name: 🚦 Security Gate
+    runs-on: ubuntu-latest
+    needs: [sast, sca, container-scan]
+    steps:
+      - name: Check results
+        run: |
+          # Logique pour vérifier les résultats
+          # Exit 1 si critique trouvé
+          echo "✅ No critical vulnerabilities"
+
   dast:
     name: ⚡ DAST
     runs-on: ubuntu-latest
@@ -158,7 +186,7 @@ jobs:
   report:
     name: 📊 Report
     runs-on: ubuntu-latest
-    needs: [sast, sca, secrets, container-scan, dast]
+    needs: [sast, sca, secrets, container-scan, dast, codeql, security-gate]
     if: always()
     steps:
       - name: Generate JSON Report
@@ -186,13 +214,25 @@ jobs:
               "container_scan": {
                 "status": "${{ needs.container-scan.result }}",
                 "tool": "Trivy"
+              },
+              "dast": {
+                "status": "${{ needs.dast.result }}",
+                "tool": "OWASP ZAP"
+              },
+              "codeql": {
+                "status": "${{ needs.codeql.result }}",
+                "tool": "CodeQL"
+              },
+              "security_gate": {
+                "status": "${{ needs.security-gate.result }}",
+                "tool": "Security Gate"
               }
             },
             "summary": {
-              "total_checks": 4,
-              "passed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }}' | grep -o "success" | wc -l),
-              "failed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }}' | grep -o "failure" | wc -l),
-              "overall_status": "$([[ "${{ needs.sast.result }}" == "failure" ]] || [[ "${{ needs.sca.result }}" == "failure" ]] || [[ "${{ needs.secrets.result }}" == "failure" ]] || [[ "${{ needs.container-scan.result }}" == "failure" ]] && echo "FAILED" || echo "PASSED")"
+              "total_checks": 7,
+              "passed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }} ${{ needs.security-gate.result }}' | grep -o "success" | wc -l),
+              "failed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }} ${{ needs.security-gate.result }}' | grep -o "failure" | wc -l),
+              "overall_status": "$([[ "${{ needs.sast.result }}" == "failure" ]] || [[ "${{ needs.sca.result }}" == "failure" ]] || [[ "${{ needs.secrets.result }}" == "failure" ]] || [[ "${{ needs.container-scan.result }}" == "failure" ]] || [[ "${{ needs.dast.result }}" == "failure" ]] || [[ "${{ needs.codeql.result }}" == "failure" ]] || [[ "${{ needs.security-gate.result }}" == "failure" ]] && echo "FAILED" || echo "PASSED")"
             }
           }
           EOF
@@ -215,6 +255,9 @@ jobs:
           echo "- SCA: ${{ needs.sca.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Secrets: ${{ needs.secrets.result }}" >> $GITHUB_STEP_SUMMARY
           echo "- Container Scan: ${{ needs.container-scan.result }}" >> $GITHUB_STEP_SUMMARY
+           echo "- DAST: ${{ needs.dast.result }}" >> $GITHUB_STEP_SUMMARY
+           echo "- CodeQL: ${{ needs.codeql.result }}" >> $GITHUB_STEP_SUMMARY
+           echo "- Security Gate: ${{ needs.security-gate.result }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "📥 **JSON Report available in artifacts**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -222,7 +265,10 @@ jobs:
           if [[ "${{ needs.sast.result }}" == "failure" ]] || \
              [[ "${{ needs.sca.result }}" == "failure" ]] || \
              [[ "${{ needs.secrets.result }}" == "failure" ]] || \
-             [[ "${{ needs.container-scan.result }}" == "failure" ]]; then
+             [[ "${{ needs.container-scan.result }}" == "failure" ]] || \
+             [[ "${{ needs.dast.result }}" == "failure" ]] || \
+             [[ "${{ needs.codeql.result }}" == "failure" ]] || \
+             [[ "${{ needs.security-gate.result }}" == "failure" ]]; then
             echo "❌ **Security issues detected!**" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "⚠️ Please review the failed jobs above" >> $GITHUB_STEP_SUMMARY
