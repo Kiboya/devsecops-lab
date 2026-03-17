@@ -144,12 +144,12 @@ Analyse sémantique avancée du code JavaScript via l'outil natif de GitHub, ave
 
 ```yaml
 - name: Initialize CodeQL
-  uses: github/codeql-action/init@v3
+  uses: github/codeql-action/init@v4
   with:
     languages: javascript
     queries: security-extended
 - name: Perform Analysis
-  uses: github/codeql-action/analyze@v3
+  uses: github/codeql-action/analyze@v4
 ```
 
 #### ⚡ DAST — OWASP ZAP
@@ -188,9 +188,9 @@ Le fichier `src/server.js` exposait directement des credentials en clair :
 
 ```javascript
 // secrets dans le code
-const DB_CONNECTION = "mongodb://admin:SuperSecret123!@prod-db.company.com:27017/myapp";
-const STRIPE_SECRET_KEY = "sk_live_51Hqp9K2eZvKYlo2C8xO3n4y5z6a7b8c9d0e1f2g3h4i5j";
-const SENDGRID_API_KEY = "SG.nExT2-QRDzJcEV39HqCxTg.KnLmOpQrStUvWxYz1234567890aBcDeF";
+const DB_CONNECTION = "mongodb://<DB_USER>:<DB_PASSWORD>@<DB_HOST>:27017/<DB_NAME>";
+const STRIPE_SECRET_KEY = "<STRIPE_SECRET_KEY_EXAMPLE>";
+const SENDGRID_API_KEY = "<SENDGRID_API_KEY_EXAMPLE>";
 ```
 
 ![alt text](images/image-1.png)
