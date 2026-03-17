@@ -70,8 +70,9 @@ if (process.env.NODE_ENV !== 'production') {
   app.get('/training/sqli', (req, res) => {
     const username = req.query.username;
     const query = `SELECT * FROM users WHERE username = '${username}'`;
-    db.query(query, (err, rows) => {
-      res.json(rows);
+    res.json({
+      warning: 'Training endpoint: intentionally vulnerable SQL construction',
+      unsafeQuery: query
     });
   });
 }

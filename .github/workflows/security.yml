@@ -160,13 +160,21 @@ jobs:
   security-gate:
     name: 🚦 Security Gate
     runs-on: ubuntu-latest
-    needs: [sast, sca, container-scan, codeql]
+    needs: [sast, sca, secrets, container-scan, dast, codeql]
+    if: always()
     steps:
       - name: Check results
         run: |
-          # Logique pour vérifier les résultats
-          # Exit 1 si critique trouvé
-          echo "✅ No critical vulnerabilities"
+          statuses="${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }}"
+
+          echo "Security jobs status: ${statuses}"
+
+          if echo "${statuses}" | tr ' ' '\n' | grep -qv '^success$'; then
+            echo "❌ Security Gate failed: at least one security job is not successful"
+            exit 1
+          fi
+
+          echo "✅ Security Gate passed: all security jobs succeeded"
 
   dast:
     name: ⚡ DAST
@@ -250,8 +258,9 @@ jobs:
             "summary": {
               "total_checks": 7,
               "passed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }} ${{ needs.security-gate.result }}' | grep -o "success" | wc -l),
-              "failed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }} ${{ needs.security-gate.result }}' | grep -o "failure" | wc -l),
-              "overall_status": "$([[ "${{ needs.sast.result }}" == "failure" ]] || [[ "${{ needs.sca.result }}" == "failure" ]] || [[ "${{ needs.secrets.result }}" == "failure" ]] || [[ "${{ needs.container-scan.result }}" == "failure" ]] || [[ "${{ needs.dast.result }}" == "failure" ]] || [[ "${{ needs.codeql.result }}" == "failure" ]] || [[ "${{ needs.security-gate.result }}" == "failure" ]] && echo "FAILED" || echo "PASSED")"
+              "failed": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }} ${{ needs.security-gate.result }}' | grep -Eo "failure|cancelled" | wc -l),
+              "skipped": $(echo '${{ needs.sast.result }} ${{ needs.sca.result }} ${{ needs.secrets.result }} ${{ needs.container-scan.result }} ${{ needs.dast.result }} ${{ needs.codeql.result }} ${{ needs.security-gate.result }}' | grep -o "skipped" | wc -l),
+              "overall_status": "$([[ "${{ needs.sast.result }}" == "success" ]] && [[ "${{ needs.sca.result }}" == "success" ]] && [[ "${{ needs.secrets.result }}" == "success" ]] && [[ "${{ needs.container-scan.result }}" == "success" ]] && [[ "${{ needs.dast.result }}" == "success" ]] && [[ "${{ needs.codeql.result }}" == "success" ]] && [[ "${{ needs.security-gate.result }}" == "success" ]] && echo "PASSED" || echo "FAILED")"
             }
           }
           EOF
